@@ -60,10 +60,14 @@ def frigate_login() -> None:
         json={"user": FRIGATE_USERNAME, "password": FRIGATE_PASSWORD},
         timeout=10,
     )
+    snippet = resp.text[:300].replace("\n", " ")
+    print(
+        f"Login response: status={resp.status_code}, "
+        f"set-cookie={'set-cookie' in {k.lower() for k in resp.headers.keys()}}, "
+        f"cookies_after={dict(SESSION.cookies)}, body={snippet!r}"
+    )
     if resp.status_code != 200:
-        snippet = resp.text[:300].replace("\n", " ")
         raise RuntimeError(f"Frigate login failed (status {resp.status_code}): {snippet!r}")
-    print("Logged in to Frigate")
 
 
 def frigate_get(path: str, **kwargs) -> requests.Response:
