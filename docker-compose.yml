@@ -1,0 +1,18 @@
+services:
+  discord-notify:
+    build: .
+    container_name: discord-notify
+    restart: unless-stopped
+    environment:
+      FRIGATE_URL: "${FRIGATE_URL:-http://frigate:5000}"
+      DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL}"
+      POLL_INTERVAL: "${POLL_INTERVAL:-15}"
+      # comma-separated, leave blank to notify on everything you track
+      NOTIFY_LABELS: "${NOTIFY_LABELS:-person,car}"
+      NOTIFY_CAMERAS: "${NOTIFY_CAMERAS:-}"
+      SEND_AS: "${SEND_AS:-gif}"
+      GIF_DURATION_SECONDS: "${GIF_DURATION_SECONDS:-6}"
+      GIF_FPS: "${GIF_FPS:-8}"
+      GIF_WIDTH: "${GIF_WIDTH:-480}"
+    volumes:
+      - ./data:/data
