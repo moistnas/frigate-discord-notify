@@ -12,8 +12,13 @@ FRIGATE_URL = os.environ.get("FRIGATE_URL", "http://frigate:5000").rstrip("/")
 DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "15"))
 FRIGATE_VERIFY_SSL = os.environ.get("FRIGATE_VERIFY_SSL", "true").strip().lower() not in ("false", "0", "no")
+FRIGATE_USERNAME = os.environ.get("FRIGATE_USERNAME")
+FRIGATE_PASSWORD = os.environ.get("FRIGATE_PASSWORD")
 if not FRIGATE_VERIFY_SSL:
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+SESSION = requests.Session()
+SESSION.verify = FRIGATE_VERIFY_SSL
 NOTIFY_LABELS = {
     l.strip() for l in os.environ.get("NOTIFY_LABELS", "").split(",") if l.strip()
 }
@@ -44,12 +49,36 @@ def save_state(last_event_time: float) -> None:
     STATE_FILE.write_text(json.dumps({"last_event_time": last_event_time}))
 
 
+def frigate_login() -> None:
+    if not (FRIGATE_USERNAME and FRIGATE_PASSWORD):
+        raise RuntimeError(
+            "Frigate returned 401 Unauthorized and no FRIGATE_USERNAME/"
+            "FRIGATE_PASSWORD were set to log in with."
+        )
+    resp = SESSION.post(
+        f"{FRIGATE_URL}/api/login",
+        json={"user": FRIGATE_USERNAME, "password": FRIGATE_PASSWORD},
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        snippet = resp.text[:300].replace("\n", " ")
+        raise RuntimeError(f"Frigate login failed (status {resp.status_code}): {snippet!r}")
+    print("Logged in to Frigate")
+
+
+def frigate_get(path: str, **kwargs) -> requests.Response:
+    resp = SESSION.get(f"{FRIGATE_URL}{path}", timeout=kwargs.pop("timeout", 15), **kwargs)
+    if resp.status_code == 401:
+        frigate_login()
+        resp = SESSION.get(f"{FRIGATE_URL}{path}", timeout=kwargs.pop("timeout", 15), **kwargs)
+    return resp
+
+
 def fetch_new_events(after: float) -> list[dict]:
-    resp = requests.get(
-        f"{FRIGATE_URL}/api/events",
+    resp = frigate_get(
+        "/api/events",
         params={"after": after, "limit": 50, "sort": "asc"},
         timeout=10,
-        verify=FRIGATE_VERIFY_SSL,
     )
     resp.raise_for_status()
     content_type = resp.headers.get("content-type", "")
@@ -75,11 +104,7 @@ def event_passes_filters(event: dict) -> bool:
 
 
 def download_clip(event_id: str, dest: Path) -> bool:
-    resp = requests.get(
-        f"{FRIGATE_URL}/api/events/{event_id}/clip.mp4",
-        timeout=30,
-        verify=FRIGATE_VERIFY_SSL,
-    )
+    resp = frigate_get(f"/api/events/{event_id}/clip.mp4", timeout=30)
     if resp.status_code != 200:
         return False
     dest.write_bytes(resp.content)
@@ -87,12 +112,7 @@ def download_clip(event_id: str, dest: Path) -> bool:
 
 
 def download_snapshot(event_id: str, dest: Path) -> bool:
-    resp = requests.get(
-        f"{FRIGATE_URL}/api/events/{event_id}/snapshot.jpg",
-        params={"quality": 90},
-        timeout=15,
-        verify=FRIGATE_VERIFY_SSL,
-    )
+    resp = frigate_get(f"/api/events/{event_id}/snapshot.jpg", params={"quality": 90}, timeout=15)
     if resp.status_code != 200:
         return False
     dest.write_bytes(resp.content)

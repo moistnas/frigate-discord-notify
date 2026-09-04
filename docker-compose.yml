@@ -6,6 +6,8 @@ services:
     environment:
       FRIGATE_URL: "http://192.168.0.50:5000"   # <-- change to your Frigate NAS IP
       FRIGATE_VERIFY_SSL: "true"   # <-- set to "false" if FRIGATE_URL is https with a self-signed cert
+      FRIGATE_USERNAME: ""   # <-- your Frigate login username, if Frigate auth is enabled
+      FRIGATE_PASSWORD: ""   # <-- your Frigate login password
       DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/xxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"   # <-- paste your real webhook URL
       POLL_INTERVAL: "15"
       NOTIFY_LABELS: "person,car"   # comma-separated, blank = notify on everything tracked
