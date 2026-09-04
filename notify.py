@@ -52,6 +52,13 @@ def fetch_new_events(after: float) -> list[dict]:
         verify=FRIGATE_VERIFY_SSL,
     )
     resp.raise_for_status()
+    content_type = resp.headers.get("content-type", "")
+    if "application/json" not in content_type:
+        snippet = resp.text[:300].replace("\n", " ")
+        raise RuntimeError(
+            f"Frigate returned non-JSON response (status {resp.status_code}, "
+            f"content-type '{content_type}') from {resp.url} — got: {snippet!r}"
+        )
     events = resp.json()
     # only fully-finished events: end_time is set once the object leaves frame,
     # which also means the recording clip is finalized and the sub_label
