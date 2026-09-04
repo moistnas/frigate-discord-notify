@@ -6,10 +6,14 @@ import time
 from pathlib import Path
 
 import requests
+import urllib3
 
 FRIGATE_URL = os.environ.get("FRIGATE_URL", "http://frigate:5000").rstrip("/")
 DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "15"))
+FRIGATE_VERIFY_SSL = os.environ.get("FRIGATE_VERIFY_SSL", "true").strip().lower() not in ("false", "0", "no")
+if not FRIGATE_VERIFY_SSL:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 NOTIFY_LABELS = {
     l.strip() for l in os.environ.get("NOTIFY_LABELS", "").split(",") if l.strip()
 }
@@ -45,6 +49,7 @@ def fetch_new_events(after: float) -> list[dict]:
         f"{FRIGATE_URL}/api/events",
         params={"after": after, "limit": 50, "sort": "asc"},
         timeout=10,
+        verify=FRIGATE_VERIFY_SSL,
     )
     resp.raise_for_status()
     events = resp.json()
@@ -63,7 +68,11 @@ def event_passes_filters(event: dict) -> bool:
 
 
 def download_clip(event_id: str, dest: Path) -> bool:
-    resp = requests.get(f"{FRIGATE_URL}/api/events/{event_id}/clip.mp4", timeout=30)
+    resp = requests.get(
+        f"{FRIGATE_URL}/api/events/{event_id}/clip.mp4",
+        timeout=30,
+        verify=FRIGATE_VERIFY_SSL,
+    )
     if resp.status_code != 200:
         return False
     dest.write_bytes(resp.content)
@@ -75,6 +84,7 @@ def download_snapshot(event_id: str, dest: Path) -> bool:
         f"{FRIGATE_URL}/api/events/{event_id}/snapshot.jpg",
         params={"quality": 90},
         timeout=15,
+        verify=FRIGATE_VERIFY_SSL,
     )
     if resp.status_code != 200:
         return False

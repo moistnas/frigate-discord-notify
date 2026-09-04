@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       FRIGATE_URL: "http://192.168.0.50:5000"   # <-- change to your Frigate NAS IP
+      FRIGATE_VERIFY_SSL: "true"   # <-- set to "false" if FRIGATE_URL is https with a self-signed cert
       DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/xxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"   # <-- paste your real webhook URL
       POLL_INTERVAL: "15"
       NOTIFY_LABELS: "person,car"   # comma-separated, blank = notify on everything tracked
