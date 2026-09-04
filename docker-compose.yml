@@ -1,18 +1,20 @@
 services:
   discord-notify:
-    build: .
+    image: ghcr.io/moistnas/frigate-discord-notify:latest
     container_name: discord-notify
     restart: unless-stopped
     environment:
-      FRIGATE_URL: "${FRIGATE_URL:-http://frigate:5000}"
-      DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL}"
-      POLL_INTERVAL: "${POLL_INTERVAL:-15}"
-      # comma-separated, leave blank to notify on everything you track
-      NOTIFY_LABELS: "${NOTIFY_LABELS:-person,car}"
-      NOTIFY_CAMERAS: "${NOTIFY_CAMERAS:-}"
-      SEND_AS: "${SEND_AS:-gif}"
-      GIF_DURATION_SECONDS: "${GIF_DURATION_SECONDS:-6}"
-      GIF_FPS: "${GIF_FPS:-8}"
-      GIF_WIDTH: "${GIF_WIDTH:-480}"
+      FRIGATE_URL: "http://192.168.0.50:5000"   # <-- change to your Frigate NAS IP
+      DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/xxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"   # <-- paste your real webhook URL
+      POLL_INTERVAL: "15"
+      NOTIFY_LABELS: "person,car"   # comma-separated, blank = notify on everything tracked
+      NOTIFY_CAMERAS: ""
+      SEND_AS: "gif"
+      GIF_DURATION_SECONDS: "6"
+      GIF_FPS: "8"
+      GIF_WIDTH: "480"
     volumes:
-      - ./data:/data
+      - discord-notify-data:/data
+
+volumes:
+  discord-notify-data:
